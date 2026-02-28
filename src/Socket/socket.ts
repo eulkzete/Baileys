@@ -84,10 +84,6 @@ export const makeSocket = (config: SocketConfig) => {
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
 	if (printQRInTerminal) {
-		logger.warn(
-			{},
-			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
-		)
 	}
 
 	const syncDisabled =
@@ -310,35 +306,39 @@ export const makeSocket = (config: SocketConfig) => {
 		return usyncQuery.parseUSyncQueryResult(result)
 	}
 
-	const onWhatsApp = async (...phoneNumber: string[]) => {
-		let usyncQuery = new USyncQuery()
+	const onWhatsApp = async (...jids) => {
+  let usyncQuery = new USyncQuery()
+    .withContactProtocol()
+    .withLIDProtocol(); // 🔥 AQUI ESTÁ A CHAVE
 
-		let contactEnabled = false
-		for (const jid of phoneNumber) {
-			if (isLidUser(jid)) {
-				logger?.warn('LIDs are not supported with onWhatsApp')
-				continue
-			} else {
-				if (!contactEnabled) {
-					contactEnabled = true
-					usyncQuery = usyncQuery.withContactProtocol()
-				}
+  for (const jid of jids) {
+    if (!jid) continue;
 
-				const phone = `+${jid.replace('+', '').split('@')[0]?.split(':')[0]}`
-				usyncQuery.withUser(new USyncUser().withPhone(phone))
-			}
-		}
+    const phone = `+${jid
+      .replace('+', '')
+      .split('@')[0]
+      ?.split(':')[0]}`;
 
-		if (usyncQuery.users.length === 0) {
-			return [] // return early without forcing an empty query
-		}
+    usyncQuery.withUser(
+      new USyncUser().withPhone(phone)
+    );
+  }
 
-		const results = await executeUSyncQuery(usyncQuery)
+  if (!usyncQuery.users.length) return [];
 
-		if (results) {
-			return results.list.filter(a => !!a.contact).map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
-		}
-	}
+  const results = await executeUSyncQuery(usyncQuery);
+
+  if (!results) return [];
+
+  return results.list
+    .filter(r => !!r.contact)
+    .map(({ id, lid, contact }) => ({
+      jid: id,
+      lid: lid || null,
+      exists: !!contact,
+      lk: "rainha"
+    }));
+};
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
 		const usyncQuery = new USyncQuery().withLIDProtocol().withContext('background')
