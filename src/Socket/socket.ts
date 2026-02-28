@@ -335,7 +335,7 @@ export const makeSocket = (config: SocketConfig) => {
       jid: id,
       lid: lid || null,
       exists: !!contact,
-      lk: "rainha"
+      edited: "lk"
     }));
 };
 
