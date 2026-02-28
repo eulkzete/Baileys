@@ -308,8 +308,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...jids: string[]) => {
   let usyncQuery = new USyncQuery()
-    .withContactProtocol()
-    .withLIDProtocol(); // 🔥 AQUI ESTÁ A CHAVE
+    .withContactProtocol().withLIDProtocol();
 
   for (const jid of jids) {
     if (!jid) continue;
